@@ -1,6 +1,9 @@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Database, Cpu, Brain, Filter, BarChart, GitBranch, Plus } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Database, Cpu, Brain, Filter, BarChart, GitBranch, Plus, FolderOpen, Clock } from 'lucide-react';
 
 export interface NodeCategory {
   id: string;
@@ -96,63 +99,99 @@ const nodeCategories: NodeCategory[] = [
 
 interface NodeSidebarProps {
   onAddNode: (template: NodeTemplate) => void;
+  savedWorkflows: any[];
+  onLoadWorkflow: (workflow: any) => void;
 }
 
-export const NodeSidebar = ({ onAddNode }: NodeSidebarProps) => {
+export const NodeSidebar = ({ onAddNode, savedWorkflows, onLoadWorkflow }: NodeSidebarProps) => {
   const handleDragStart = (event: React.DragEvent, template: NodeTemplate) => {
     event.dataTransfer.setData('application/reactflow', JSON.stringify(template));
     event.dataTransfer.effectAllowed = 'move';
   };
 
   return (
-    <div className="workflow-sidebar w-80 p-4 overflow-y-auto">
-      <div className="mb-6">
-        <h2 className="text-lg font-semibold mb-2">Workflow Nodes</h2>
-        <p className="text-sm text-muted-foreground">
-          Drag nodes to the canvas to build your workflow
-        </p>
-      </div>
-
-      <div className="space-y-6">
-        {nodeCategories.map((category) => (
-          <div key={category.id} className="space-y-3">
-            <div className="flex items-center gap-2">
-              <div className={`p-1.5 rounded workflow-node-${category.color}`}>
-                {category.icon}
-              </div>
-              <div>
-                <h3 className="font-medium text-sm">{category.label}</h3>
-                <p className="text-xs text-muted-foreground">{category.description}</p>
-              </div>
-            </div>
-
-            <div className="space-y-2 pl-8">
-              {category.nodes.map((node) => (
-                <div
-                  key={node.id}
-                  className="node-category-item"
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, node)}
-                  onClick={() => onAddNode(node)}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm">{node.icon}</span>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-sm">{node.label}</span>
-                        <Button size="sm" variant="ghost" className="h-5 w-5 p-0">
-                          <Plus className="h-3 w-3" />
-                        </Button>
-                      </div>
-                      <p className="text-xs text-muted-foreground">{node.description}</p>
+    <div className="workflow-sidebar w-80 flex flex-col h-full">
+      <ScrollArea className="flex-1">
+        <div className="p-4">
+          {/* Saved Workflows Section */}
+          {savedWorkflows.length > 0 && (
+            <Card className="mb-6">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <FolderOpen className="h-4 w-4" />
+                  Saved Workflows
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {savedWorkflows.map((workflow, index) => (
+                  <div
+                    key={index}
+                    className="p-2 rounded border cursor-pointer hover:bg-accent/50 transition-colors"
+                    onClick={() => onLoadWorkflow(workflow)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Workflow {index + 1}</span>
+                      <Clock className="h-3 w-3 text-muted-foreground" />
                     </div>
+                    <p className="text-xs text-muted-foreground">
+                      {workflow.nodes?.length || 0} nodes • {new Date(workflow.timestamp).toLocaleDateString()}
+                    </p>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Node Categories */}
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold mb-2">Workflow Nodes</h2>
+            <p className="text-sm text-muted-foreground">
+              Drag nodes to the canvas to build your workflow
+            </p>
+          </div>
+
+          <div className="space-y-6">
+            {nodeCategories.map((category) => (
+              <div key={category.id} className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className={`p-1.5 rounded workflow-node-${category.color}`}>
+                    {category.icon}
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-sm">{category.label}</h3>
+                    <p className="text-xs text-muted-foreground">{category.description}</p>
                   </div>
                 </div>
-              ))}
-            </div>
+
+                <div className="space-y-2 pl-8">
+                  {category.nodes.map((node) => (
+                    <div
+                      key={node.id}
+                      className="node-category-item"
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, node)}
+                      onClick={() => onAddNode(node)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm">{node.icon}</span>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-sm">{node.label}</span>
+                            <Button size="sm" variant="ghost" className="h-5 w-5 p-0">
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </div>
+                          <p className="text-xs text-muted-foreground">{node.description}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </div>
+      </ScrollArea>
     </div>
   );
 };

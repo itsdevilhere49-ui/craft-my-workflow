@@ -63,6 +63,8 @@ export const WorkflowCanvas = () => {
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
   const [isRunning, setIsRunning] = useState(false);
+  const [favoriteNodes, setFavoriteNodes] = useState<any[]>([]);
+  const [savedWorkflows, setSavedWorkflows] = useState<any[]>([]);
 
   const onConnect = useCallback(
     (params: Edge | Connection) => setEdges((eds) => addEdge(params, eds)),
@@ -148,15 +150,85 @@ export const WorkflowCanvas = () => {
     toast.success('Node deleted');
   }, [nodes, setNodes, setEdges]);
 
+  const validateWorkflowConnections = () => {
+    const nonStartEndNodes = nodes.filter(node => {
+      const nodeData = node.data as WorkflowNodeData;
+      return nodeData.category !== 'start' && nodeData.category !== 'end';
+    });
+
+    // Check if all intermediate nodes are connected
+    for (const node of nonStartEndNodes) {
+      const hasIncomingConnection = edges.some(edge => edge.target === node.id);
+      const hasOutgoingConnection = edges.some(edge => edge.source === node.id);
+      
+      if (!hasIncomingConnection || !hasOutgoingConnection) {
+        return false;
+      }
+    }
+    
+    return true;
+  };
+
   const handleRunWorkflow = async () => {
+    if (!validateWorkflowConnections()) {
+      toast.error('Please ensure all nodes are properly connected before running the workflow');
+      return;
+    }
+
     setIsRunning(true);
     toast.info('Running workflow...');
     
-    // Simulate workflow execution
+    // Simulate workflow execution with progress
+    const nonStartEndNodes = nodes.filter(node => {
+      const nodeData = node.data as WorkflowNodeData;
+      return nodeData.category !== 'start' && nodeData.category !== 'end';
+    });
+
+    // Set all nodes to running state
+    setNodes(prevNodes => 
+      prevNodes.map(node => ({
+        ...node,
+        data: { ...node.data, isRunning: true, progress: 0, isCompleted: false }
+      }))
+    );
+
+    // Simulate progress for each node
+    for (let i = 0; i < nonStartEndNodes.length; i++) {
+      const nodeId = nonStartEndNodes[i].id;
+      
+      // Animate progress for current node
+      for (let progress = 0; progress <= 100; progress += 20) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        setNodes(prevNodes => 
+          prevNodes.map(node => 
+            node.id === nodeId 
+              ? { ...node, data: { ...node.data, progress } }
+              : node
+          )
+        );
+      }
+      
+      // Mark as completed
+      setNodes(prevNodes => 
+        prevNodes.map(node => 
+          node.id === nodeId 
+            ? { ...node, data: { ...node.data, isRunning: false, isCompleted: true } }
+            : node
+        )
+      );
+    }
+
+    // Reset all nodes
     setTimeout(() => {
+      setNodes(prevNodes => 
+        prevNodes.map(node => ({
+          ...node,
+          data: { ...node.data, isRunning: false, progress: 0, isCompleted: false }
+        }))
+      );
       setIsRunning(false);
       toast.success('Workflow completed successfully!');
-    }, 2000);
+    }, 1000);
   };
 
   const handleSaveWorkflow = () => {
@@ -164,10 +236,12 @@ export const WorkflowCanvas = () => {
       nodes,
       edges,
       timestamp: new Date().toISOString(),
+      name: `Workflow ${savedWorkflows.length + 1}`
     };
     
-    // In a real app, you would save to a backend
-    localStorage.setItem('workflow', JSON.stringify(workflowData));
+    const updatedWorkflows = [...savedWorkflows, workflowData];
+    setSavedWorkflows(updatedWorkflows);
+    localStorage.setItem('savedWorkflows', JSON.stringify(updatedWorkflows));
     toast.success('Workflow saved');
   };
 
@@ -191,25 +265,73 @@ export const WorkflowCanvas = () => {
     toast.success('Workflow exported');
   };
 
+  const handleNewWorkflow = () => {
+    // Auto-save current workflow if it has changes
+    if (nodes.length > 2 || edges.length > 0) {
+      handleSaveWorkflow();
+    }
+    
+    // Create new workflow
+    setNodes(initialNodes);
+    setEdges(initialEdges);
+    setFavoriteNodes([]);
+    toast.success('New workflow created');
+  };
+
   const handleClearWorkflow = () => {
     setNodes(initialNodes);
     setEdges(initialEdges);
+    setFavoriteNodes([]);
     toast.success('Workflow cleared');
   };
 
-  // Listen for delete node events
+  const handleLoadWorkflow = (workflow: any) => {
+    setNodes(workflow.nodes || initialNodes);
+    setEdges(workflow.edges || initialEdges);
+    toast.success('Workflow loaded');
+  };
+
+  // Listen for delete node and favorite events
   useEffect(() => {
     const handleDeleteEvent = (event: any) => {
       handleDeleteNode(event.detail.nodeId);
     };
 
+    const handleFavoriteEvent = (event: any) => {
+      const { nodeId, isFavorited, nodeData } = event.detail;
+      const node = nodes.find(n => n.id === nodeId);
+      
+      if (isFavorited && node) {
+        setFavoriteNodes(prev => [...prev.filter(n => n.id !== nodeId), node]);
+      } else {
+        setFavoriteNodes(prev => prev.filter(n => n.id !== nodeId));
+      }
+    };
+
     window.addEventListener('deleteNode', handleDeleteEvent);
-    return () => window.removeEventListener('deleteNode', handleDeleteEvent);
-  }, [handleDeleteNode]);
+    window.addEventListener('toggleFavorite', handleFavoriteEvent);
+    
+    return () => {
+      window.removeEventListener('deleteNode', handleDeleteEvent);
+      window.removeEventListener('toggleFavorite', handleFavoriteEvent);
+    };
+  }, [handleDeleteNode, nodes]);
+
+  // Load saved workflows on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('savedWorkflows');
+    if (saved) {
+      setSavedWorkflows(JSON.parse(saved));
+    }
+  }, []);
 
   return (
     <div className="flex h-screen bg-background">
-      <NodeSidebar onAddNode={addNodeToCenter} />
+      <NodeSidebar 
+        onAddNode={addNodeToCenter} 
+        savedWorkflows={savedWorkflows}
+        onLoadWorkflow={handleLoadWorkflow}
+      />
       
       <div className="flex-1 flex flex-col">
         <WorkflowToolbar
@@ -217,7 +339,11 @@ export const WorkflowCanvas = () => {
           onSave={handleSaveWorkflow}
           onExport={handleExportWorkflow}
           onClear={handleClearWorkflow}
+          onNewWorkflow={handleNewWorkflow}
           isRunning={isRunning}
+          favoriteNodes={favoriteNodes}
+          savedWorkflows={savedWorkflows}
+          onLoadWorkflow={handleLoadWorkflow}
         />
         
         <div className="flex-1" ref={reactFlowWrapper}>

@@ -1,7 +1,8 @@
 import { memo, useState } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 import { Button } from '@/components/ui/button';
-import { Star, X } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { Star, X, Database, Cpu, Brain, Filter, BarChart, GitBranch, Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface WorkflowNodeData extends Record<string, unknown> {
@@ -11,6 +12,9 @@ export interface WorkflowNodeData extends Record<string, unknown> {
   icon?: string;
   canDelete?: boolean;
   canFavorite?: boolean;
+  isRunning?: boolean;
+  progress?: number;
+  isCompleted?: boolean;
 }
 
 const WorkflowNode = memo(({ data, selected, id }: NodeProps) => {
@@ -18,7 +22,13 @@ const WorkflowNode = memo(({ data, selected, id }: NodeProps) => {
   
   const handleFavorite = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsFavorited(!isFavorited);
+    const newFavoriteState = !isFavorited;
+    setIsFavorited(newFavoriteState);
+    
+    // Emit custom event for parent to handle favorites
+    window.dispatchEvent(new CustomEvent('toggleFavorite', { 
+      detail: { nodeId: id, isFavorited: newFavoriteState, nodeData: data } 
+    }));
   };
 
   const handleDelete = (e: React.MouseEvent) => {
@@ -29,6 +39,21 @@ const WorkflowNode = memo(({ data, selected, id }: NodeProps) => {
 
   const nodeData = data as WorkflowNodeData;
   const isStartOrEnd = nodeData.category === 'start' || nodeData.category === 'end';
+  
+  // Get professional icon based on category
+  const getCategoryIcon = () => {
+    switch (nodeData.category) {
+      case 'start': return <Play className="h-4 w-4" />;
+      case 'end': return <div className="h-4 w-4 rounded-full bg-current" />;
+      case 'data': return <Database className="h-4 w-4" />;
+      case 'process': return <Cpu className="h-4 w-4" />;
+      case 'ai': return <Brain className="h-4 w-4" />;
+      case 'filter': return <Filter className="h-4 w-4" />;
+      case 'visualize': return <BarChart className="h-4 w-4" />;
+      case 'conditional': return <GitBranch className="h-4 w-4" />;
+      default: return null;
+    }
+  };
 
   return (
     <div className={cn(
@@ -63,11 +88,30 @@ const WorkflowNode = memo(({ data, selected, id }: NodeProps) => {
       {/* Node content */}
       <div className="p-3">
         <div className="flex items-center gap-2 mb-1">
-          {nodeData.icon && <span className="text-lg">{nodeData.icon}</span>}
+          {getCategoryIcon()}
           <h3 className="font-medium text-sm">{nodeData.label}</h3>
         </div>
         {nodeData.description && (
           <p className="text-xs opacity-90">{nodeData.description}</p>
+        )}
+        
+        {/* Progress bar during execution */}
+        {nodeData.isRunning && (
+          <div className="mt-2 space-y-1">
+            <div className="flex items-center justify-between text-xs">
+              <span>Processing...</span>
+              <span>{nodeData.progress || 0}%</span>
+            </div>
+            <Progress value={nodeData.progress || 0} className="h-1" />
+          </div>
+        )}
+        
+        {/* Completion indicator */}
+        {nodeData.isCompleted && (
+          <div className="mt-2 flex items-center gap-1 text-xs text-green-600">
+            <div className="w-2 h-2 bg-green-600 rounded-full" />
+            <span>Completed</span>
+          </div>
         )}
       </div>
 
