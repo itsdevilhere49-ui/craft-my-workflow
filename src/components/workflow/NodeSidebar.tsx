@@ -3,7 +3,10 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Database, Cpu, Brain, Filter, BarChart, GitBranch, Plus, FolderOpen, Clock } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Database, Cpu, Brain, Filter, BarChart, GitBranch, Plus, FolderOpen, Clock, Edit, Trash, Sparkles } from 'lucide-react';
+import { CustomNodeDialog } from './CustomNodeDialog';
+import { useState } from 'react';
 
 export interface NodeCategory {
   id: string;
@@ -101,12 +104,30 @@ interface NodeSidebarProps {
   onAddNode: (template: NodeTemplate) => void;
   savedWorkflows: any[];
   onLoadWorkflow: (workflow: any) => void;
+  onRenameWorkflow: (index: number, newName: string) => void;
+  onDeleteWorkflow: (index: number) => void;
 }
 
-export const NodeSidebar = ({ onAddNode, savedWorkflows, onLoadWorkflow }: NodeSidebarProps) => {
+export const NodeSidebar = ({ onAddNode, savedWorkflows, onLoadWorkflow, onRenameWorkflow, onDeleteWorkflow }: NodeSidebarProps) => {
+  const [customNodes, setCustomNodes] = useState<NodeTemplate[]>([]);
+  const [editingWorkflow, setEditingWorkflow] = useState<number | null>(null);
+  const [newWorkflowName, setNewWorkflowName] = useState('');
+
   const handleDragStart = (event: React.DragEvent, template: NodeTemplate) => {
     event.dataTransfer.setData('application/reactflow', JSON.stringify(template));
     event.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleCreateCustomNode = (template: NodeTemplate) => {
+    setCustomNodes(prev => [...prev, template]);
+  };
+
+  const handleWorkflowRename = (index: number) => {
+    if (newWorkflowName.trim()) {
+      onRenameWorkflow(index, newWorkflowName);
+      setEditingWorkflow(null);
+      setNewWorkflowName('');
+    }
   };
 
   return (
@@ -126,12 +147,61 @@ export const NodeSidebar = ({ onAddNode, savedWorkflows, onLoadWorkflow }: NodeS
                 {savedWorkflows.map((workflow, index) => (
                   <div
                     key={index}
-                    className="p-2 rounded border cursor-pointer hover:bg-accent/50 transition-colors"
-                    onClick={() => onLoadWorkflow(workflow)}
+                    className="p-2 rounded border hover:bg-accent/50 transition-colors"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Workflow {index + 1}</span>
-                      <Clock className="h-3 w-3 text-muted-foreground" />
+                      {editingWorkflow === index ? (
+                        <div className="flex items-center gap-2 flex-1">
+                          <Input
+                            value={newWorkflowName}
+                            onChange={(e) => setNewWorkflowName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleWorkflowRename(index);
+                              if (e.key === 'Escape') setEditingWorkflow(null);
+                            }}
+                            className="h-6 text-xs"
+                            autoFocus
+                          />
+                          <Button
+                            size="sm"
+                            className="h-6 px-2"
+                            onClick={() => handleWorkflowRename(index)}
+                          >
+                            Save
+                          </Button>
+                        </div>
+                      ) : (
+                        <>
+                          <span 
+                            className="text-sm font-medium cursor-pointer flex-1"
+                            onClick={() => onLoadWorkflow(workflow)}
+                          >
+                            {workflow.name || `Workflow ${index + 1}`}
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 w-6 p-0"
+                              onClick={() => {
+                                setEditingWorkflow(index);
+                                setNewWorkflowName(workflow.name || `Workflow ${index + 1}`);
+                              }}
+                            >
+                              <Edit className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 w-6 p-0 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                              onClick={() => onDeleteWorkflow(index)}
+                            >
+                              <Trash className="h-3 w-3" />
+                            </Button>
+                            <Clock className="h-3 w-3 text-muted-foreground ml-1" />
+                          </div>
+                        </>
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {workflow.nodes?.length || 0} nodes • {new Date(workflow.timestamp).toLocaleDateString()}
@@ -144,13 +214,56 @@ export const NodeSidebar = ({ onAddNode, savedWorkflows, onLoadWorkflow }: NodeS
 
           {/* Node Categories */}
           <div className="mb-6">
-            <h2 className="text-lg font-semibold mb-2">Workflow Nodes</h2>
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-lg font-semibold">Workflow Nodes</h2>
+              <CustomNodeDialog onCreateCustomNode={handleCreateCustomNode} />
+            </div>
             <p className="text-sm text-muted-foreground">
               Drag nodes to the canvas to build your workflow
             </p>
           </div>
 
           <div className="space-y-6">
+            {/* Custom Nodes Section */}
+            {customNodes.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded bg-gradient-to-r from-purple-500 to-pink-500">
+                    <Sparkles className="h-4 w-4 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-sm">Custom Nodes</h3>
+                    <p className="text-xs text-muted-foreground">Your personalized workflow nodes</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2 pl-8">
+                  {customNodes.map((node) => (
+                    <div
+                      key={node.id}
+                      className="node-category-item"
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, node)}
+                      onClick={() => onAddNode(node)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm">{node.icon}</span>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-sm">{node.label}</span>
+                            <Button size="sm" variant="ghost" className="h-5 w-5 p-0">
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </div>
+                          <p className="text-xs text-muted-foreground">{node.description}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {nodeCategories.map((category) => (
               <div key={category.id} className="space-y-3">
                 <div className="flex items-center gap-2">

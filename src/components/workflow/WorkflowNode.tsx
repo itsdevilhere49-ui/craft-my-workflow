@@ -2,8 +2,9 @@ import { memo, useState } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Star, X, Database, Cpu, Brain, Filter, BarChart, GitBranch, Play } from 'lucide-react';
+import { Star, X, Database, Cpu, Brain, Filter, BarChart, GitBranch, Play, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { WorkflowConfigDialog } from './WorkflowConfigDialog';
 
 export interface WorkflowNodeData extends Record<string, unknown> {
   label: string;
@@ -15,10 +16,21 @@ export interface WorkflowNodeData extends Record<string, unknown> {
   isRunning?: boolean;
   progress?: number;
   isCompleted?: boolean;
+  timeout?: number;
+  retries?: number;
+  customCode?: string;
+  parameters?: Record<string, any>;
 }
 
 const WorkflowNode = memo(({ data, selected, id }: NodeProps) => {
   const [isFavorited, setIsFavorited] = useState(false);
+  
+  const handleUpdateNode = (nodeId: string, updates: Partial<WorkflowNodeData>) => {
+    // Emit custom event for parent to handle node updates
+    window.dispatchEvent(new CustomEvent('updateNode', { 
+      detail: { nodeId, updates } 
+    }));
+  };
   
   const handleFavorite = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -73,12 +85,20 @@ const WorkflowNode = memo(({ data, selected, id }: NodeProps) => {
         </Button>
       )}
 
+      {/* Configuration button */}
+      {!isStartOrEnd && (
+        <WorkflowConfigDialog 
+          node={{ id, data: nodeData }} 
+          onUpdateNode={handleUpdateNode}
+        />
+      )}
+
       {/* Delete button */}
       {nodeData.canDelete && !isStartOrEnd && (
         <Button
           size="sm"
           variant="ghost"
-          className="absolute top-1 right-7 opacity-0 hover:opacity-100 transition-opacity text-destructive"
+          className="absolute top-1 right-8 opacity-0 hover:opacity-100 transition-opacity text-destructive"
           onClick={handleDelete}
         >
           <X className="h-3 w-3" />
@@ -99,18 +119,23 @@ const WorkflowNode = memo(({ data, selected, id }: NodeProps) => {
         {nodeData.isRunning && (
           <div className="mt-2 space-y-1">
             <div className="flex items-center justify-between text-xs">
-              <span>Processing...</span>
-              <span>{nodeData.progress || 0}%</span>
+              <span className="animate-pulse">Processing...</span>
+              <span className="font-mono">{nodeData.progress || 0}%</span>
             </div>
-            <Progress value={nodeData.progress || 0} className="h-1" />
+            <Progress value={nodeData.progress || 0} className="h-2 bg-white/20">
+              <div 
+                className="h-full bg-gradient-to-r from-white to-white/80 transition-all duration-300 rounded-full" 
+                style={{ width: `${nodeData.progress || 0}%` }}
+              />
+            </Progress>
           </div>
         )}
         
         {/* Completion indicator */}
         {nodeData.isCompleted && (
-          <div className="mt-2 flex items-center gap-1 text-xs text-green-600">
-            <div className="w-2 h-2 bg-green-600 rounded-full" />
-            <span>Completed</span>
+          <div className="mt-2 flex items-center gap-1 text-xs text-green-400">
+            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+            <span className="font-medium">Completed</span>
           </div>
         )}
       </div>

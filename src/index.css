@@ -130,17 +130,20 @@
 }
 
 .workflow-node {
-  @apply rounded-lg shadow-sm border bg-card text-card-foreground;
-  min-width: 150px;
-  transition: all 0.2s ease;
+  @apply rounded-lg shadow-lg border bg-card text-card-foreground;
+  min-width: 160px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(8px);
 }
 
 .workflow-node:hover {
-  @apply shadow-md;
+  @apply shadow-xl;
+  transform: translateY(-2px);
 }
 
 .workflow-node.selected {
-  @apply ring-2 ring-primary;
+  @apply ring-2 ring-primary shadow-2xl;
+  transform: scale(1.02);
 }
 
 .workflow-node-data {

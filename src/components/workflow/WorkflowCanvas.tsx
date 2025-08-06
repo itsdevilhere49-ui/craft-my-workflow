@@ -66,6 +66,15 @@ export const WorkflowCanvas = () => {
   const [favoriteNodes, setFavoriteNodes] = useState<any[]>([]);
   const [savedWorkflows, setSavedWorkflows] = useState<any[]>([]);
 
+  const handleUpdateNode = useCallback((nodeId: string, updates: Partial<WorkflowNodeData>) => {
+    setNodes((nds) => nds.map((node) => 
+      node.id === nodeId 
+        ? { ...node, data: { ...node.data, ...updates } }
+        : node
+    ));
+    toast.success('Node updated');
+  }, [setNodes]);
+
   const onConnect = useCallback(
     (params: Edge | Connection) => setEdges((eds) => addEdge(params, eds)),
     [setEdges]
@@ -156,7 +165,20 @@ export const WorkflowCanvas = () => {
       return nodeData.category !== 'start' && nodeData.category !== 'end';
     });
 
-    // Check if all intermediate nodes are connected
+    if (nonStartEndNodes.length === 0) return true;
+
+    // Check if start node is connected
+    const startNode = nodes.find(node => (node.data as WorkflowNodeData).category === 'start');
+    const endNode = nodes.find(node => (node.data as WorkflowNodeData).category === 'end');
+    
+    if (!startNode || !endNode) return false;
+
+    const hasStartConnection = edges.some(edge => edge.source === startNode.id);
+    const hasEndConnection = edges.some(edge => edge.target === endNode.id);
+    
+    if (!hasStartConnection || !hasEndConnection) return false;
+
+    // Check if all intermediate nodes are properly connected
     for (const node of nonStartEndNodes) {
       const hasIncomingConnection = edges.some(edge => edge.target === node.id);
       const hasOutgoingConnection = edges.some(edge => edge.source === node.id);
@@ -291,7 +313,41 @@ export const WorkflowCanvas = () => {
     toast.success('Workflow loaded');
   };
 
-  // Listen for delete node and favorite events
+  const handleRemoveFromFavorites = useCallback((nodeId: string) => {
+    setFavoriteNodes(prev => prev.filter(n => n.id !== nodeId));
+    toast.success('Removed from favorites');
+  }, []);
+
+  const handleAddFavoriteToCanvas = useCallback((node: any) => {
+    const nodeData = node.data as WorkflowNodeData;
+    // Only add non-start/end nodes to canvas
+    if (nodeData.category === 'start' || nodeData.category === 'end') return;
+    
+    addNodeToCenter({
+      id: node.id,
+      label: nodeData.label,
+      description: nodeData.description || '',
+      category: nodeData.category,
+      icon: nodeData.icon || '',
+    });
+  }, [addNodeToCenter]);
+
+  const handleRenameWorkflow = useCallback((index: number, newName: string) => {
+    const updatedWorkflows = [...savedWorkflows];
+    updatedWorkflows[index] = { ...updatedWorkflows[index], name: newName };
+    setSavedWorkflows(updatedWorkflows);
+    localStorage.setItem('savedWorkflows', JSON.stringify(updatedWorkflows));
+    toast.success('Workflow renamed');
+  }, [savedWorkflows]);
+
+  const handleDeleteWorkflow = useCallback((index: number) => {
+    const updatedWorkflows = savedWorkflows.filter((_, i) => i !== index);
+    setSavedWorkflows(updatedWorkflows);
+    localStorage.setItem('savedWorkflows', JSON.stringify(updatedWorkflows));
+    toast.success('Workflow deleted');
+  }, [savedWorkflows]);
+
+  // Listen for delete node, favorite, and update events
   useEffect(() => {
     const handleDeleteEvent = (event: any) => {
       handleDeleteNode(event.detail.nodeId);
@@ -308,14 +364,21 @@ export const WorkflowCanvas = () => {
       }
     };
 
+    const handleUpdateEvent = (event: any) => {
+      const { nodeId, updates } = event.detail;
+      handleUpdateNode(nodeId, updates);
+    };
+
     window.addEventListener('deleteNode', handleDeleteEvent);
     window.addEventListener('toggleFavorite', handleFavoriteEvent);
+    window.addEventListener('updateNode', handleUpdateEvent);
     
     return () => {
       window.removeEventListener('deleteNode', handleDeleteEvent);
       window.removeEventListener('toggleFavorite', handleFavoriteEvent);
+      window.removeEventListener('updateNode', handleUpdateEvent);
     };
-  }, [handleDeleteNode, nodes]);
+  }, [handleDeleteNode, handleUpdateNode, nodes]);
 
   // Load saved workflows on mount
   useEffect(() => {
@@ -331,6 +394,8 @@ export const WorkflowCanvas = () => {
         onAddNode={addNodeToCenter} 
         savedWorkflows={savedWorkflows}
         onLoadWorkflow={handleLoadWorkflow}
+        onRenameWorkflow={handleRenameWorkflow}
+        onDeleteWorkflow={handleDeleteWorkflow}
       />
       
       <div className="flex-1 flex flex-col">
@@ -344,6 +409,10 @@ export const WorkflowCanvas = () => {
           favoriteNodes={favoriteNodes}
           savedWorkflows={savedWorkflows}
           onLoadWorkflow={handleLoadWorkflow}
+          onRemoveFromFavorites={handleRemoveFromFavorites}
+          onAddFavoriteToCanvas={handleAddFavoriteToCanvas}
+          onRenameWorkflow={handleRenameWorkflow}
+          onDeleteWorkflow={handleDeleteWorkflow}
         />
         
         <div className="flex-1" ref={reactFlowWrapper}>
