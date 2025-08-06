@@ -4,7 +4,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Database, Cpu, Brain, Filter, BarChart, GitBranch, Plus, FolderOpen, Clock, Edit, Trash, Sparkles } from 'lucide-react';
+import { Database, Cpu, Brain, Filter, BarChart, GitBranch, Plus, FolderOpen, Clock, Edit, Trash, Sparkles, Star } from 'lucide-react';
 import { CustomNodeDialog } from './CustomNodeDialog';
 import { useState } from 'react';
 
@@ -241,19 +241,37 @@ export const NodeSidebar = ({ onAddNode, savedWorkflows, onLoadWorkflow, onRenam
                   {customNodes.map((node) => (
                     <div
                       key={node.id}
-                      className="node-category-item"
+                      className="node-category-item group"
                       draggable
                       onDragStart={(e) => handleDragStart(e, node)}
-                      onClick={() => onAddNode(node)}
                     >
                       <div className="flex items-center gap-2">
                         <span className="text-sm">{node.icon}</span>
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-sm">{node.label}</span>
-                            <Button size="sm" variant="ghost" className="h-5 w-5 p-0">
-                              <Plus className="h-3 w-3" />
-                            </Button>
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                className="h-5 w-5 p-0"
+                                onClick={() => onAddNode(node)}
+                                title="Add to canvas"
+                              >
+                                <Plus className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost" 
+                                className="h-5 w-5 p-0 text-yellow-500 hover:text-yellow-600"
+                                onClick={() => window.dispatchEvent(new CustomEvent('addToFavorites', { 
+                                  detail: { nodeTemplate: node } 
+                                }))}
+                                title="Add to favorites"
+                              >
+                                <Star className="h-3 w-3" />
+                              </Button>
+                            </div>
                           </div>
                           <p className="text-xs text-muted-foreground">{node.description}</p>
                         </div>
@@ -280,19 +298,37 @@ export const NodeSidebar = ({ onAddNode, savedWorkflows, onLoadWorkflow, onRenam
                   {category.nodes.map((node) => (
                     <div
                       key={node.id}
-                      className="node-category-item"
+                      className="node-category-item group"
                       draggable
                       onDragStart={(e) => handleDragStart(e, node)}
-                      onClick={() => onAddNode(node)}
                     >
                       <div className="flex items-center gap-2">
                         <span className="text-sm">{node.icon}</span>
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-sm">{node.label}</span>
-                            <Button size="sm" variant="ghost" className="h-5 w-5 p-0">
-                              <Plus className="h-3 w-3" />
-                            </Button>
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                className="h-5 w-5 p-0"
+                                onClick={() => onAddNode(node)}
+                                title="Add to canvas"
+                              >
+                                <Plus className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost" 
+                                className="h-5 w-5 p-0 text-yellow-500 hover:text-yellow-600"
+                                onClick={() => window.dispatchEvent(new CustomEvent('addToFavorites', { 
+                                  detail: { nodeTemplate: node } 
+                                }))}
+                                title="Add to favorites"
+                              >
+                                <Star className="h-3 w-3" />
+                              </Button>
+                            </div>
                           </div>
                           <p className="text-xs text-muted-foreground">{node.description}</p>
                         </div>

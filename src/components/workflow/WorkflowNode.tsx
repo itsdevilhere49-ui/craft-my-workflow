@@ -1,5 +1,5 @@
 import { memo, useState } from 'react';
-import { Handle, Position, NodeProps } from '@xyflow/react';
+import { Handle, Position, NodeProps, NodeResizer } from '@xyflow/react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Star, X, Database, Cpu, Brain, Filter, BarChart, GitBranch, Play, Settings } from 'lucide-react';
@@ -73,6 +73,16 @@ const WorkflowNode = memo(({ data, selected, id }: NodeProps) => {
       `workflow-node-${nodeData.category}`,
       selected && 'selected'
     )}>
+      {/* Node Resizer for non-start/end nodes */}
+      {!isStartOrEnd && (
+        <NodeResizer 
+          minWidth={120} 
+          minHeight={80} 
+          isVisible={selected}
+          lineClassName="border-primary"
+          handleClassName="!bg-primary !border-primary-foreground"
+        />
+      )}
       {/* Favorite button */}
       {nodeData.canFavorite && !isStartOrEnd && (
         <Button

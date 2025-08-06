@@ -332,6 +332,32 @@ export const WorkflowCanvas = () => {
     });
   }, [addNodeToCenter]);
 
+  const handleAddToFavorites = useCallback((template: any) => {
+    // Create a mock node from template to add to favorites
+    const mockNode = {
+      id: `fav_${template.id}_${Date.now()}`,
+      data: {
+        label: template.label,
+        description: template.description,
+        category: template.category,
+        icon: template.icon,
+      }
+    };
+    
+    // Check if already in favorites
+    const isAlreadyFavorited = favoriteNodes.some(node => 
+      (node.data as WorkflowNodeData).label === template.label &&
+      (node.data as WorkflowNodeData).category === template.category
+    );
+    
+    if (!isAlreadyFavorited) {
+      setFavoriteNodes(prev => [...prev, mockNode]);
+      toast.success('Added to favorites');
+    } else {
+      toast.info('Already in favorites');
+    }
+  }, [favoriteNodes]);
+
   const handleRenameWorkflow = useCallback((index: number, newName: string) => {
     const updatedWorkflows = [...savedWorkflows];
     updatedWorkflows[index] = { ...updatedWorkflows[index], name: newName };
@@ -347,20 +373,26 @@ export const WorkflowCanvas = () => {
     toast.success('Workflow deleted');
   }, [savedWorkflows]);
 
-  // Listen for delete node, favorite, and update events
+  // Listen for delete node, favorite, update, and add to favorites events
   useEffect(() => {
     const handleDeleteEvent = (event: any) => {
       handleDeleteNode(event.detail.nodeId);
     };
 
     const handleFavoriteEvent = (event: any) => {
-      const { nodeId, isFavorited, nodeData } = event.detail;
+      const { nodeId, isFavorited } = event.detail;
       const node = nodes.find(n => n.id === nodeId);
       
       if (isFavorited && node) {
-        setFavoriteNodes(prev => [...prev.filter(n => n.id !== nodeId), node]);
+        // Check if already favorited
+        const isAlreadyFavorited = favoriteNodes.some(n => n.id === nodeId);
+        if (!isAlreadyFavorited) {
+          setFavoriteNodes(prev => [...prev, node]);
+          toast.success('Added to favorites');
+        }
       } else {
         setFavoriteNodes(prev => prev.filter(n => n.id !== nodeId));
+        toast.success('Removed from favorites');
       }
     };
 
@@ -369,16 +401,23 @@ export const WorkflowCanvas = () => {
       handleUpdateNode(nodeId, updates);
     };
 
+    const handleAddToFavoritesEvent = (event: any) => {
+      const { nodeTemplate } = event.detail;
+      handleAddToFavorites(nodeTemplate);
+    };
+
     window.addEventListener('deleteNode', handleDeleteEvent);
     window.addEventListener('toggleFavorite', handleFavoriteEvent);
     window.addEventListener('updateNode', handleUpdateEvent);
+    window.addEventListener('addToFavorites', handleAddToFavoritesEvent);
     
     return () => {
       window.removeEventListener('deleteNode', handleDeleteEvent);
       window.removeEventListener('toggleFavorite', handleFavoriteEvent);
       window.removeEventListener('updateNode', handleUpdateEvent);
+      window.removeEventListener('addToFavorites', handleAddToFavoritesEvent);
     };
-  }, [handleDeleteNode, handleUpdateNode, nodes]);
+  }, [handleDeleteNode, handleUpdateNode, handleAddToFavorites, nodes, favoriteNodes]);
 
   // Load saved workflows on mount
   useEffect(() => {
