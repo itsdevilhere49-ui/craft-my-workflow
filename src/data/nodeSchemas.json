@@ -1,0 +1,289 @@
+{
+  "schemas": [
+    {
+      "id": "csv-source",
+      "name": "CSV Data Source",
+      "description": "Import data from CSV files",
+      "category": "data",
+      "icon": "📊",
+      "color": "hsl(198, 93%, 60%)",
+      "version": "1.0.0",
+      "properties": {
+        "filePath": {
+          "type": "string",
+          "title": "CSV File Path",
+          "description": "Path to the CSV file",
+          "format": "url"
+        },
+        "hasHeaders": {
+          "type": "boolean",
+          "title": "Has Headers",
+          "description": "Does the CSV file have column headers?",
+          "default": true
+        },
+        "delimiter": {
+          "type": "select",
+          "title": "Delimiter",
+          "description": "CSV delimiter character",
+          "enum": [",", ";", "|", "\t"],
+          "default": ","
+        },
+        "encoding": {
+          "type": "select",
+          "title": "File Encoding",
+          "enum": ["utf-8", "latin1", "ascii"],
+          "default": "utf-8"
+        }
+      },
+      "required": ["filePath"],
+      "uiSchema": {
+        "filePath": {
+          "ui:widget": "file",
+          "ui:placeholder": "Select or enter CSV file path"
+        }
+      }
+    },
+    {
+      "id": "database-source",
+      "name": "Database Source",
+      "description": "Connect to SQL databases",
+      "category": "data",
+      "icon": "🗄️",
+      "color": "hsl(198, 93%, 60%)",
+      "version": "1.0.0",
+      "properties": {
+        "connectionString": {
+          "type": "string",
+          "title": "Connection String",
+          "description": "Database connection string"
+        },
+        "query": {
+          "type": "string",
+          "title": "SQL Query",
+          "description": "SQL query to execute"
+        },
+        "timeout": {
+          "type": "number",
+          "title": "Query Timeout (seconds)",
+          "minimum": 1,
+          "maximum": 300,
+          "default": 30
+        }
+      },
+      "required": ["connectionString", "query"],
+      "uiSchema": {
+        "connectionString": {
+          "ui:widget": "textarea",
+          "ui:placeholder": "postgresql://user:password@host:port/database"
+        },
+        "query": {
+          "ui:widget": "textarea",
+          "ui:placeholder": "SELECT * FROM table_name"
+        }
+      },
+      "dataSource": {
+        "type": "database"
+      }
+    },
+    {
+      "id": "api-source",
+      "name": "REST API Source",
+      "description": "Fetch data from REST APIs",
+      "category": "data",
+      "icon": "🔗",
+      "color": "hsl(198, 93%, 60%)",
+      "version": "1.0.0",
+      "properties": {
+        "url": {
+          "type": "string",
+          "title": "API Endpoint",
+          "description": "REST API endpoint URL",
+          "format": "url"
+        },
+        "method": {
+          "type": "select",
+          "title": "HTTP Method",
+          "enum": ["GET", "POST", "PUT", "DELETE"],
+          "default": "GET"
+        },
+        "headers": {
+          "type": "object",
+          "title": "HTTP Headers",
+          "description": "Custom headers for the request",
+          "properties": {
+            "Authorization": {
+              "type": "string",
+              "title": "Authorization"
+            },
+            "Content-Type": {
+              "type": "string",
+              "title": "Content Type",
+              "default": "application/json"
+            }
+          }
+        },
+        "body": {
+          "type": "string",
+          "title": "Request Body",
+          "description": "JSON request body for POST/PUT requests"
+        }
+      },
+      "required": ["url"],
+      "dataSource": {
+        "type": "api"
+      }
+    },
+    {
+      "id": "data-transform",
+      "name": "Data Transform",
+      "description": "Transform and manipulate data",
+      "category": "process",
+      "icon": "🔄",
+      "color": "hsl(142, 76%, 36%)",
+      "version": "1.0.0",
+      "properties": {
+        "transformType": {
+          "type": "select",
+          "title": "Transform Type",
+          "enum": ["map", "filter", "reduce", "sort", "group"],
+          "default": "map"
+        },
+        "expression": {
+          "type": "string",
+          "title": "Transform Expression",
+          "description": "JavaScript expression for transformation"
+        },
+        "outputFields": {
+          "type": "array",
+          "title": "Output Fields",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": ["transformType", "expression"],
+      "uiSchema": {
+        "expression": {
+          "ui:widget": "textarea",
+          "ui:placeholder": "item => ({ ...item, newField: item.oldField * 2 })"
+        }
+      }
+    },
+    {
+      "id": "ai-classify",
+      "name": "AI Classification",
+      "description": "Classify data using AI/ML models",
+      "category": "ai",
+      "icon": "🤖",
+      "color": "hsl(262, 83%, 58%)",
+      "version": "1.0.0",
+      "properties": {
+        "model": {
+          "type": "select",
+          "title": "Classification Model",
+          "enum": ["sentiment", "category", "intent", "custom"],
+          "default": "sentiment"
+        },
+        "inputField": {
+          "type": "string",
+          "title": "Input Field",
+          "description": "Field containing text to classify"
+        },
+        "outputField": {
+          "type": "string",
+          "title": "Output Field",
+          "description": "Field name for classification result",
+          "default": "classification"
+        },
+        "confidence": {
+          "type": "number",
+          "title": "Minimum Confidence",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.7
+        }
+      },
+      "required": ["inputField"],
+      "dataSource": {
+        "type": "api",
+        "endpoint": "/api/ai/classify",
+        "method": "POST"
+      }
+    },
+    {
+      "id": "condition-branch",
+      "name": "Conditional Branch",
+      "description": "Branch workflow based on conditions",
+      "category": "conditional",
+      "icon": "🔀",
+      "color": "hsl(217, 91%, 60%)",
+      "version": "1.0.0",
+      "properties": {
+        "condition": {
+          "type": "string",
+          "title": "Condition",
+          "description": "JavaScript condition expression"
+        },
+        "trueLabel": {
+          "type": "string",
+          "title": "True Branch Label",
+          "default": "True"
+        },
+        "falseLabel": {
+          "type": "string",
+          "title": "False Branch Label",
+          "default": "False"
+        }
+      },
+      "required": ["condition"],
+      "uiSchema": {
+        "condition": {
+          "ui:widget": "textarea",
+          "ui:placeholder": "item.value > 100"
+        }
+      }
+    },
+    {
+      "id": "chart-viz",
+      "name": "Chart Visualization",
+      "description": "Create charts and visualizations",
+      "category": "visualize",
+      "icon": "📈",
+      "color": "hsl(271, 81%, 56%)",
+      "version": "1.0.0",
+      "properties": {
+        "chartType": {
+          "type": "select",
+          "title": "Chart Type",
+          "enum": ["bar", "line", "pie", "scatter", "area"],
+          "default": "bar"
+        },
+        "xField": {
+          "type": "string",
+          "title": "X-Axis Field",
+          "description": "Field for X-axis values"
+        },
+        "yField": {
+          "type": "string",
+          "title": "Y-Axis Field",
+          "description": "Field for Y-axis values"
+        },
+        "title": {
+          "type": "string",
+          "title": "Chart Title"
+        },
+        "width": {
+          "type": "number",
+          "title": "Chart Width (px)",
+          "default": 400
+        },
+        "height": {
+          "type": "number",
+          "title": "Chart Height (px)",
+          "default": 300
+        }
+      },
+      "required": ["chartType", "xField", "yField"]
+    }
+  ]
+}

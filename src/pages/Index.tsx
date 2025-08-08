@@ -1,7 +1,7 @@
-import { WorkflowApp } from '@/components/workflow/WorkflowCanvas';
+import { JsonWorkflowApp } from '@/components/workflow/JsonWorkflowCanvas';
 
 const Index = () => {
-  return <WorkflowApp />;
+  return <JsonWorkflowApp />;
 };
 
 export default Index;
