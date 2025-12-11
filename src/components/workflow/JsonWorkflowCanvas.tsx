@@ -344,7 +344,11 @@ export const JsonWorkflowCanvas = () => {
       targetHandle: edge.targetHandle,
       type: (edge.type as 'default' | 'smoothstep' | 'step' | 'straight') || 'default',
       animated: edge.animated,
-      style: edge.style,
+      style: edge.style ? {
+        stroke: edge.style.stroke as string | undefined,
+        strokeWidth: typeof edge.style.strokeWidth === 'number' ? edge.style.strokeWidth : undefined,
+        strokeDasharray: edge.style.strokeDasharray as string | undefined
+      } : undefined,
       markerEnd: edge.markerEnd
     }));
 
