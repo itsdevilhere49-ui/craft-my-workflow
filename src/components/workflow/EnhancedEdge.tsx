@@ -75,9 +75,9 @@ const EnhancedEdge = memo(({
               fontSize: 12,
               pointerEvents: 'all',
             }}
-            className="nodrag nopan bg-background border rounded px-2 py-1 text-xs font-medium shadow-sm"
+          className="nodrag nopan bg-background border rounded px-2 py-1 text-xs font-medium shadow-sm"
           >
-            {data?.label}
+            {String(data?.label)}
           </div>
         </EdgeLabelRenderer>
       )}
